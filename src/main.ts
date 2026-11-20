@@ -43,6 +43,35 @@ const drumSounds: Record<string, () => void> = {
   ride: () => { noise(0.7, 'highpass', 6800, 0.32); tone('square', 6200, 6100, 0.18, 0.05); tone('square', 8400, 8300, 0.12, 0.04) },
 }
 
+
+// ---------- Piano (synth: harmonics + decay envelope) ----------
+type Note = { name: string; midi: number; black: boolean; keyLabel: string; kb: string }
+const NOTES: Note[] = []
+const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+// chromatic keyboard mapping starting at C4: a w s e d f t g y h u j k o l p ; ' (C5..) then z row is not used
+const KB = ['a','w','s','e','d','f','t','g','y','h','u','j','k','o','l','p',';',"'",'[']
+let kbIdx = 0
+for (let midi = 60; midi <= 84; midi++) { // C4..C6 = 2 octaves + top C
+  const name = NAMES[midi % 12] + String(Math.floor(midi / 12) - 1)
+  const black = name.includes('#')
+  NOTES.push({ name, midi, black, keyLabel: (KB[kbIdx] || '').toUpperCase(), kb: KB[kbIdx] || '' }); kbIdx++
+}
+function playPiano(midi: number) {
+  const ac = audio(); const t = ac.currentTime
+  const freq = 440 * Math.pow(2, (midi - 69) / 12)
+  const master = ac.createGain(); const lp = ac.createBiquadFilter()
+  lp.type = 'lowpass'; lp.frequency.value = 4200
+  master.gain.setValueAtTime(0.0001, t)
+  master.gain.exponentialRampToValueAtTime(0.55, t + 0.008)
+  master.gain.exponentialRampToValueAtTime(0.0001, t + 2.4)
+  lp.connect(master); master.connect(ac.destination)
+  ;[[1, 1], [2, 0.42], [3, 0.18], [4, 0.07]].forEach(([mult, amt]) => {
+    const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = freq * (mult as number)
+    const g = ac.createGain(); g.gain.value = amt as number
+    o.connect(g); g.connect(lp); o.start(t); o.stop(t + 2.4)
+  })
+}
+
 // ---------- UI ----------
 type Pad = { id: string; label: string; sub: string; keyLabel: string; keys: string[]; kind: string; style: string }
 const pads: Pad[] = [
@@ -90,11 +119,23 @@ app.innerHTML = `
     </section>
 
     <section id="panel-piano" class="mt-6 hidden">
-      <div class="grid place-items-center rounded-3xl border border-white/10 bg-white/5 px-6 py-20 text-center">
-        <i data-lucide="piano" class="h-10 w-10 text-zinc-500"></i>
-        <p class="mt-3 font-semibold text-zinc-300">ピアノは段階2で実装します</p>
-        <p class="mt-1 text-sm text-zinc-500">鍵盤（2オクターブ以上）と、音が上へ伸びる光の演出が入ります。</p>
+      <div class="piano-wrap">
+        <div id="beams" class="beams" aria-hidden="true"></div>
+        <div id="keyboard" class="keyboard" role="group" aria-label="ピアノ鍵盤">
+          ${NOTES.filter(n => !n.black).map(n => `<button class="wkey" data-midi="${n.midi}" aria-label="${n.name}"><span class="wkey-name">${n.name}</span><span class="wkey-kb">${n.keyLabel}</span></button>`).join('')}
+          ${NOTES.filter(n => n.black).map(n => {
+            // black key sits between previous white key and next: position by count of white keys before it
+            const whitesBefore = NOTES.filter(x => x.midi < n.midi && !x.black).length
+            const totalWhites = NOTES.filter(x => !x.black).length
+            const left = (whitesBefore / totalWhites) * 100
+            return `<button class="bkey" style="left:${left}%" data-midi="${n.midi}" aria-label="${n.name}"><span class="bkey-kb">${n.keyLabel}</span></button>`
+          }).join('')}
+        </div>
       </div>
+      <p class="mt-4 flex flex-wrap items-center justify-center gap-2 text-center text-xs text-zinc-400">
+        <i data-lucide="keyboard" class="h-4 w-4"></i>
+        キーボード： A が C4（ド）、半音は W E T Y U O P。鍵を叩くと光が上へ伸びます。
+      </p>
     </section>
   </main>
   <footer class="pb-6 text-center text-[11px] text-zinc-600">Git_DrumPiano — Stage dark theme / Responsive</footer>
@@ -107,7 +148,7 @@ const tabDrums = document.querySelector('#tab-drums')!
 const tabPiano = document.querySelector('#tab-piano')!
 const panelDrums = document.querySelector('#panel-drums')!
 const panelPiano = document.querySelector('#panel-piano')!
-function switchTab(which: 'drums' | 'piano') {
+let switchTab = function (which: 'drums' | 'piano') {
   const drums = which === 'drums'
   tabDrums.classList.toggle('is-active', drums); tabPiano.classList.toggle('is-active', !drums)
   tabDrums.setAttribute('aria-selected', String(drums)); tabPiano.setAttribute('aria-selected', String(!drums))
@@ -127,4 +168,34 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return
   const p = pads.find(x => x.keys.includes(e.key.toLowerCase()))
   if (p && !panelDrums.classList.contains('hidden')) { e.preventDefault(); hit(p.id) }
+})
+
+
+// piano hits + light beams
+let currentTab: 'drums' | 'piano' = 'drums'
+const _switch = switchTab
+switchTab = function (which: 'drums' | 'piano') { currentTab = which; _switch(which) }
+tabDrums.addEventListener('click', () => { currentTab = 'drums' })
+tabPiano.addEventListener('click', () => { currentTab = 'piano' })
+
+function hitPiano(midi: number, el: HTMLElement | null) {
+  playPiano(midi)
+  if (el) { el.classList.remove('pressed'); void el.offsetWidth; el.classList.add('pressed'); setTimeout(() => el.classList.remove('pressed'), 260) }
+  const keyEl = el ?? document.querySelector(`[data-midi="${midi}"]`)
+  const beams = document.querySelector('#beams') as HTMLElement | null
+  const kb = document.querySelector('#keyboard') as HTMLElement | null
+  if (keyEl && beams && kb) {
+    const kr = kb.getBoundingClientRect(); const r = (keyEl as HTMLElement).getBoundingClientRect()
+    const beam = document.createElement('span')
+    beam.className = 'beam' + ((keyEl as HTMLElement).classList.contains('bkey') ? ' beam-black' : '')
+    beam.style.left = `${r.left - kr.left + r.width / 2}px`
+    beams.appendChild(beam)
+    setTimeout(() => beam.remove(), 950)
+  }
+}
+document.querySelectorAll('[data-midi]').forEach(el => el.addEventListener('pointerdown', () => hitPiano(Number((el as HTMLElement).dataset.midi), el as HTMLElement)))
+window.addEventListener('keydown', (e) => {
+  if (e.repeat || currentTab !== 'piano') return
+  const n = NOTES.find(x => x.kb && x.kb === e.key.toLowerCase())
+  if (n) { e.preventDefault(); hitPiano(n.midi, null) }
 })

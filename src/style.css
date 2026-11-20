@@ -28,3 +28,23 @@ body { background:#09090b; }
 @keyframes padhit { 0%{ transform:scale(1);} 30%{ transform:scale(.93);} 100%{ transform:scale(1);} }
 .pad.kick.hit { animation:kickhit .18s ease-out; }
 @keyframes kickhit { 0%{ transform:translateX(-50%) scale(1);} 30%{ transform:translateX(-50%) scale(.94);} 100%{ transform:translateX(-50%) scale(1);} }
+
+
+/* piano */
+.piano-wrap { position:relative; max-width:860px; margin-inline:auto; padding-top:190px; }
+.beams { position:absolute; left:0; right:0; top:0; height:190px; pointer-events:none; overflow:visible; }
+.beam { position:absolute; bottom:0; width:14px; margin-left:-7px; height:0; border-radius:9999px;
+  background:linear-gradient(to top, rgba(56,189,248,.95), rgba(56,189,248,.25) 60%, transparent);
+  box-shadow:0 0 18px 4px rgba(56,189,248,.55); animation:beamup .95s ease-out forwards; }
+.beam-black { width:10px; margin-left:-5px; background:linear-gradient(to top, rgba(244,114,182,.95), rgba(244,114,182,.25) 60%, transparent); box-shadow:0 0 18px 4px rgba(244,114,182,.5); }
+@keyframes beamup { 0%{ height:8px; opacity:0;} 12%{ opacity:1;} 55%{ height:178px; opacity:.95;} 100%{ height:190px; opacity:0;} }
+.keyboard { position:relative; display:flex; height:230px; border-radius:0 0 14px 14px; overflow:hidden; box-shadow:0 18px 40px rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.12); background:#111; }
+@media (max-width:640px){ .keyboard{ height:180px; } .piano-wrap{ padding-top:140px; } .beams{ height:140px; } }
+.wkey { position:relative; flex:1 1 0; background:linear-gradient(#ffffff,#e4e4e7); border-right:1px solid #a1a1aa; color:#27272a; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.wkey:last-of-type { border-right:none; }
+.wkey.pressed { background:linear-gradient(#bae6fd,#7dd3fc); }
+.wkey-name { position:absolute; bottom:22px; left:50%; transform:translateX(-50%); font-size:.6rem; font-weight:600; color:#71717a; }
+.wkey-kb { position:absolute; bottom:6px; left:50%; transform:translateX(-50%); font-size:.55rem; padding:.02rem .3rem; border-radius:9999px; background:#e4e4e7; color:#52525b; }
+.bkey { position:absolute; top:0; width:4.2%; max-width:34px; height:58%; transform:translateX(-50%); background:linear-gradient(#3f3f46,#09090b); border:1px solid #000; border-radius:0 0 6px 6px; z-index:2; cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+.bkey.pressed { background:linear-gradient(#f9a8d4,#db2777); }
+.bkey-kb { position:absolute; bottom:6px; left:50%; transform:translateX(-50%); font-size:.5rem; color:#d4d4d8; }
