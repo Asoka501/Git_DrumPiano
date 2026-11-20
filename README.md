@@ -13,25 +13,25 @@
 https://asoka501.github.io/Git_DrumPiano/
 
 ## 構成
-- Vite + TypeScript + Tailwind CSS + Lucide（標準スタック）
+- Vite + TypeScript + Tailwind CSS + Lucide
 - `src/main.ts` が入口、`src/style.css` にスタイル、`public/` に素材を置きます
 - 音源は Web Audio API の合成のみ（外部サンプルなし）
 - main へマージされると GitHub Actions が自動でビルドして GitHub Pages へ公開します
 
 ## ローカル確認
+    git clone https://github.com/Asoka501/Git_DrumPiano.git
+    cd Git_DrumPiano
     npm install
     npm run dev
 
-nextgear 側で確認する場合の clone はこちらです。
-
-    git clone https://github.com/Asoka501/Git_DrumPiano.git
-
 ## 開発の進め方
-- 指示ごとにブランチを切り、確認が取れたら PR 経由で main へマージします
+- 機能ごとにブランチを切り、PR 経由で main へマージします
 - 段階1：`feat/drums` — 楽器切替UI＋ドラム画面
 - 段階2：`feat/piano` — ピアノ画面
 
-## 進捗メモ（検証プロジェクトとしての実測）
-- リポジトリ作成：コネクタの create_repository は 403（integration 権限外）のため、オーナーが手動作成し、Muse GitHub App の対象に追加した
-- push 経路：VM clone からの https git push は認証情報がなく不可。GitHub コネクタ経由の push が正規経路
-- ワークフロー：`.github/workflows/` 配下のファイルはコネクタ（integration）からは作成できない（403）。Pages 用ワークフローはオーナーが Web 画面から追加する
+## 振り返り：工夫した点
+- 音はすべて Web Audio API で合成し、外部サンプルを持たない構成にしました。読み込み待ちがなく、開いてすぐ演奏できます
+- ドラムの合成は `noise()`（ノイズ系）と `tone()`（トーン系）の共通部品に切り出し、楽器ごとの違いはパラメータに寄せました。キックはピッチを急降下させるサイン波、スネアはノイズとトーンの重ね、ハットやシンバルはハイパスを通したノイズ、タムは音程が下がっていくサイン波です
+- ドラムの配置は、観客側から見た姿ではなく演奏者の座席視点にしました。ハイハットが左、フロアタムが右という、実際の演奏感覚に寄せた並びです
+- ピアノは基音に2倍・3倍・4倍の倍音を重ねた加算合成で、減衰のエンベロープとローパスフィルターで音の柔らかさに寄せました。鍵を叩くと光のバーが上へ伸びる演出を付け、打鍵の手応えを目でも感じられるようにしています
+- 操作はクリック／タップとキーボードの両対応です。ドラムは Q／A／S／D／F／Space など、ピアノは A 以降に白鍵、W／E などに黒鍵を割り当てました
