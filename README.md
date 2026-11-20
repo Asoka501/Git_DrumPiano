@@ -32,4 +32,6 @@ nextgear 側で確認する場合の clone はこちらです。
 - 段階2：`feat/piano` — ピアノ画面
 
 ## 進捗メモ（検証プロジェクトとしての実測）
-- 段階0で記録します：リポジトリ作成の経路、VM clone から git push できるかどうか、Pages 有効化に必要な操作
+- リポジトリ作成：コネクタの create_repository は 403（integration 権限外）のため、オーナーが手動作成し、Muse GitHub App の対象に追加した
+- push 経路：VM clone からの https git push は認証情報がなく不可。GitHub コネクタ経由の push が正規経路
+- ワークフロー：`.github/workflows/` 配下のファイルはコネクタ（integration）からは作成できない（403）。Pages 用ワークフローはオーナーが Web 画面から追加する
